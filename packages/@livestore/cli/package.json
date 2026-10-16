@@ -42,14 +42,14 @@
     "dev": "bun src/bin.ts"
   },
   "dependencies": {
-    "@effect/ai-openai": "4.0.0",
-    "@effect/opentelemetry": "4.0.0",
+    "@effect/ai-openai": "4.0.3",
+    "@effect/opentelemetry": "4.0.3",
     "@livestore/adapter-node": "workspace:^",
     "@livestore/common": "link:../../../repos/livestore/packages/@livestore/common",
     "@livestore/livestore": "link:../../../repos/livestore/packages/@livestore/livestore",
     "@livestore/peer-deps": "link:../../../repos/livestore/packages/@livestore/peer-deps",
     "@livestore/utils": "link:../../../repos/livestore/packages/@livestore/utils",
-    "effect": "4.0.0"
+    "effect": "4.0.3"
   },
   "devDependencies": {
     "@livestore/utils-dev": "link:../../../repos/livestore/packages/@livestore/utils-dev",
