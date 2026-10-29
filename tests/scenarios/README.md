@@ -158,6 +158,7 @@ and promotion workflow.
 | Read the normative realization contract                         | [Requirements](../../context/verification/scenarios/requirements.md) and [specification](../../context/verification/scenarios/spec.md) |
 | Run adversarial campaigns and reduce failures                   | [Red-team plan](./RED_TEAMING.md)                                                                                                      |
 | Review known sync failures and exact reproductions              | [Sync correctness findings](./SYNC_CORRECTNESS_FINDINGS.md)                                                                            |
+| Measure snapshot boot under a multi-agent restart workload      | [Snapshot boot scenarios](./SNAPSHOT_BOOT.md)                                                                                          |
 
 `tests/scenarios` is private contributor tooling. It may depend on LiveStore
 product packages, but product packages never depend on the runner.
