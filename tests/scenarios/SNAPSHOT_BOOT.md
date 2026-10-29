@@ -148,7 +148,69 @@ git -C repos/livestore checkout --detach "$(jq -r .members.livestore.commit mega
 DEVENV_TASK_PASSTHROUGH=1 <devenv pnpm> install --frozen-lockfile
 ```
 
-## Results
+## Results: quiet machine, after core fixes
+
+Measured on 2026-10-29/30 on the same Apple M1 Pro (10 cores, 32 GB), Node
+24.13.1, local `wrangler dev`, against core `claude/snapshot-boot-6d51c8` at
+`620dce76b` (10 × 10 run) and `5f6974a49` (all later runs). The core now includes
+the fixes for the stalls reported below: a WebSocket ping timeout now fails
+in-flight RPC calls (the silent live-pull stall), rejected pushes no longer wait
+for a pull that never comes, and an ended live pull is restarted. It also
+includes per-call SQLite leak fixes and the restart pending-set and rebase fixes,
+and raises the trigger's `replayCostPerEventMs` default to 0.5. The Node
+checkpointer runs its leader with `headless: true`. The machine was mostly
+idle: the 1-minute load average was 11–22 during these runs. Runs were strictly
+sequential, one run per row, with the same commands as below (100 × 2:
+`--mode snapshot --agents 100 --rate 2 --restart-every 90 --head-timeout 300
+--settle-timeout 300`).
+
+| Run      | Load (start) | Mode          | Restarts ok/failed | TTH p50 / p95   | Tail p50 | Init boot p50 | Committed ev/s | Confirmed ev/s | Commit→confirmed p50 / p95 | Push attempts / rejected | Rebases | Lost/kill p50 | Snapshots (size) | Oracle |
+| -------- | ------------ | ------------- | ------------------ | --------------- | -------- | ------------- | -------------- | -------------- | -------------------------- | ------------------------ | ------- | ------------- | ---------------- | ------ |
+| 10 × 10  | 12           | baseline      | 20 / 0             | 38.2 s / 58.3 s | 8 454    | 11.2 s        | 45.9           | 38.5           | 5.2 s / 42.6 s             | 1 723 / 295              | 17      | 7             | —                | pass   |
+| 10 × 10  | 12           | snapshot      | 20 / 0             | 3.0 s / 10.0 s  | 114      | 0.1 s         | 89.5           | 39.8           | 5.7 s / 31.6 s             | 1 678 / 435              | 36      | 219           | 16 (2.3 MB)      | pass   |
+| 25 × 10  | 19           | baseline      | 45 / 0             | 50.3 s / 62.8 s | 7 977    | 21.5 s        | 101.9          | 39.4           | 21.2 s / 38.7 s            | 1 414 / 470              | 61      | 200           | —                | pass   |
+| 25 × 10  | 19           | snapshot      | 50 / 0             | 5.3 s / 12.5 s  | 120      | 0.3 s         | 224.1          | 32.6           | 17.1 s / 43.7 s            | 2 084 / 881              | 84      | 484           | 20 (2.8 MB)      | pass   |
+| 50 × 5   | 18           | baseline      | 50 / 0             | 74.6 s / 91.9 s | 5 543    | 45.8 s        | 99.8           | 16.4           | 23.6 s / 52.7 s            | 1 635 / 470              | 87      | 192           | —                | pass   |
+| 50 × 5   | 18           | snapshot      | 100 / 0            | 8.4 s / 16.6 s  | 100      | 0.4 s         | 205.8          | 22.6           | 18.7 s / 47.9 s            | 3 732 / 1 522            | 131     | 221           | 39 (2.6 MB)      | pass   |
+| 100 × 2  | 16           | snapshot      | 133 / 0            | 17.0 s / 27.4 s | 50       | 0.7 s         | 167.7          | 14.6           | 28.4 s / 69.9 s            | 6 650 / 1 858            | 163     | 109           | 50 (2.7 MB)      | pass   |
+| 10 × 10¹ | 14           | snapshot (CF) | 19 / 0             | 5.0 s / 10.9 s  | 148      | 0.4 s         | 78.9           | 37.3           | 3.9 s / 18.3 s             | 924 / 203                | 29      | 137           | 8 (1.6 MB)       | pass   |
+
+1. 60 s steady phase, restart every 30 s (as CF1 below).
+
+Reference clients after the runs (quiet backend, ≈ 10–14 k events): full replay
+3.8–6.1 s, snapshot boot 0.0–0.1 s. One exception: the full-replay reference
+after the 100-agent run took 76.5 s. The Node checkpointer published 16–50
+snapshots per run (export p50 2–4 ms, publish p50 19–28 ms, tail per publish
+p50 146–350 events). The Cloudflare checkpointer published 8 (publish p50
+80 ms). The CF blob download p50 was 574 ms, against 4–47 ms for the
+file-system source.
+
+What changed compared with the shared-machine runs:
+
+- **No stalls.** Every run passed the oracle. In each, every agent, the
+  checkpointer and both reference clients ended at the backend head with
+  identical state, the backend log was contiguous, and no boot missed its
+  deadline. This includes 50 agents (both modes) and 100 agents with snapshots.
+  The 50-agent baseline, which previously never booted, now completes.
+- **Restart time-to-head.** With snapshots: 3.0 s (10 agents), 5.3 s (25),
+  8.4 s (50), 17.0 s (100), each with a tail of 50–150 events. Without:
+  38–75 s, replaying 5 500–8 500 events. That is a 9–13× improvement. At these
+  sizes the snapshot download and install costs 50–120 ms; the rest is the
+  backend and host CPUs being busy with the write load.
+- **Committed throughput** roughly doubles with snapshots (45.9 → 89.5,
+  101.9 → 224.1, 99.8 → 205.8 ev/s), because agents spend seconds instead of a
+  minute unable to work after each restart.
+- **Push contention is unchanged and is now the clear ceiling.** Confirmed
+  throughput stays at 15–40 ev/s whatever the offered load, falling as writers
+  increase: about 40 ev/s at 10–25 agents, 16–23 at 50, 15 at 100. That is 7–45%
+  of what agents commit. 21–42% of pushes are rejected with `ServerAheadError`,
+  and commit→confirmed p50 grows from 5 s (10 agents) to 28 s (100). The
+  confirmation backlog is also what a killed sandbox loses (109–484 events per
+  kill with snapshots). Snapshot boot does not address this. The many-writer
+  push/rebase path against one Durable Object is the limit for the 100-agent
+  target.
+
+## Results: shared machine, before core fixes
 
 Measured on 2026-10-29 on an Apple M1 Pro (10 cores, 32 GB), macOS (Darwin
 27.0.0), Node 24.13.1, local `wrangler dev` (workerd), against the core worktree
