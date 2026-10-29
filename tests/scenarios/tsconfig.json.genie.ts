@@ -16,6 +16,7 @@ export default tsconfigJson({
   include: ['./src'],
   exclude: [...packageTsconfigExclude],
   references: [
+    { path: '../../repos/livestore/packages/@livestore/adapter-cloudflare' },
     { path: '../../repos/livestore/packages/@livestore/adapter-web' },
     { path: '../../repos/livestore/packages/@livestore/common' },
     { path: '../../repos/livestore/packages/@livestore/livestore' },

@@ -62,6 +62,9 @@
   ],
   "references": [
     {
+      "path": "../../repos/livestore/packages/@livestore/adapter-cloudflare"
+    },
+    {
       "path": "../../repos/livestore/packages/@livestore/adapter-web"
     },
     {

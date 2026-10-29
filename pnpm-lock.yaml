@@ -2480,6 +2480,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: 4.20251118.0
         version: 4.20251118.0
+      '@livestore/adapter-cloudflare':
+        specifier: link:../../repos/livestore/packages/@livestore/adapter-cloudflare
+        version: link:../../repos/livestore/packages/@livestore/adapter-cloudflare
       '@livestore/adapter-web':
         specifier: link:../../repos/livestore/packages/@livestore/adapter-web
         version: link:../../repos/livestore/packages/@livestore/adapter-web
@@ -2492,6 +2495,9 @@ importers:
       '@livestore/react':
         specifier: link:../../repos/livestore/packages/@livestore/react
         version: link:../../repos/livestore/packages/@livestore/react
+      '@livestore/sqlite-wasm':
+        specifier: link:../../repos/livestore/packages/@livestore/sqlite-wasm
+        version: link:../../repos/livestore/packages/@livestore/sqlite-wasm
       '@livestore/sync-cf':
         specifier: link:../../repos/livestore/packages/@livestore/sync-cf
         version: link:../../repos/livestore/packages/@livestore/sync-cf

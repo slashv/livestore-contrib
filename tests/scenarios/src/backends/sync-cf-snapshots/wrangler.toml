@@ -1,0 +1,22 @@
+name = "livestore-scenario-sync-cf-snapshots"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["enable_request_signal"]
+main = "./worker.ts"
+
+[[durable_objects.bindings]]
+name = "SYNC_BACKEND_DO"
+class_name = "SyncBackendDO"
+
+# Experimental snapshot boot: one checkpointer Durable Object per (storeId, snapshot key), woken by pushes
+[[durable_objects.bindings]]
+name = "CHECKPOINTER_DO"
+class_name = "CheckpointerDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SyncBackendDO", "CheckpointerDO"]
+
+# Snapshot blobs; simulated locally by miniflare
+[[r2_buckets]]
+binding = "SNAPSHOT_BUCKET"
+bucket_name = "livestore-scenario-snapshots"
