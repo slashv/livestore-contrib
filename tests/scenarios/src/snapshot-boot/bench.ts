@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 import { makeWsSync } from '@livestore/sync-cf/client'
 import { WranglerDevServer } from '@livestore/utils-dev/wrangler'
-import { Effect, FetchHttpClient, KeyValueStore, Layer, Option, Stream } from '@livestore/utils/effect'
+import { Effect, FetchHttpClient, KeyValueStore, Layer, Option, Schedule, Stream } from '@livestore/utils/effect'
 import { PlatformNode } from '@livestore/utils/node'
 
 import { sleep } from './agent-host.ts'
@@ -834,6 +834,8 @@ const program = Effect.gen(function* () {
       options.realization === 'cf' ? 'sync-cf-snapshots' : 'sync-cf',
     ),
     showLogs: process.env.SCENARIO_BACKEND_LOGS === '1',
+    // Generous bounds: on a busy machine workerd can take well over the default 5s to answer its first request.
+    readiness: { startupTimeout: '60 seconds', connectTimeout: '30 seconds', retrySchedule: Schedule.recurs(2) },
   })
   console.log(`sync-cf: ${server.url}`)
   const exitCode = yield* Effect.promise(() => main(options, server.url))

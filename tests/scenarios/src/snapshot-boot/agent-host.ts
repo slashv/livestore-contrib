@@ -189,6 +189,9 @@ export const makeAgentHost = (init: AgentHostInit, env: AgentHostEnv) => {
       }
     } catch (cause) {
       agent.booting = false
+      // A boot that missed its head deadline still has a live Store that keeps syncing: the agent goes to work on
+      // it (late) rather than idling for the rest of the run. Its record still counts as a failed boot.
+      if (agent.store !== undefined) agent.writing = stopped === false
       return {
         agentId: agent.agentId,
         incarnation,
