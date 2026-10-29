@@ -177,6 +177,8 @@ export const bootNodeLeader = ({
         syncOptions: { backend: makeBackend, livePull: true, onSyncError: 'ignore' },
         devtoolsOptions: { enabled: false },
         shutdownChannel: shutdownChannel.webChannel,
+        // No client session reads from this leader, so it skips the session pull-item cache.
+        headless: true,
       }).pipe(Layer.provide(Layer.mergeAll(sqliteDbLayer, stateServicesLayer)), Layer.provide(FetchHttpClient.layer)),
       scope,
     )

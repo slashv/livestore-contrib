@@ -671,7 +671,8 @@ const stats = (values: ReadonlyArray<number>): Stats => ({
   p50: percentile(values, 50),
   p95: percentile(values, 95),
   p99: percentile(values, 99),
-  max: values.length === 0 ? undefined : Math.max(...values),
+  // A loop, not `Math.max(...values)`: latency samples of a long run exceed the engine's argument limit.
+  max: values.length === 0 ? undefined : values.reduce((max, value) => (value > max ? value : max), -Infinity),
 })
 
 const uniqueBy = <A>(values: ReadonlyArray<A>, key: (value: A) => unknown) => {
